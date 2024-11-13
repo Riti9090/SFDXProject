@@ -44,9 +44,9 @@ node {
             // Pull out the assigned username (handle Windows and Unix)
             def rmsg
             if (isUnix()) {
-                rmsg = sh returnStdout: true, script: "${toolbelt} project deploy start -d manifest/. -u ${HUB_ORG}"
+                rmsg = sh returnStdout: true, script: "${toolbelt} project deploy start -d manifest/. -o ${HUB_ORG}"
             } else {
-                rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start -d manifest/. -u ${HUB_ORG}"
+                rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start -d manifest/. -o ${HUB_ORG}"
             }
             
             // Print the result message
