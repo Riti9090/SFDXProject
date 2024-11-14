@@ -1,56 +1,75 @@
-#!groovy
-import groovy.json.JsonSlurperClassic
+pipeline {
+    agent any
 
-node {
-    def BUILD_NUMBER = env.BUILD_NUMBER
-    def RUN_ARTIFACT_DIR = "tests/${BUILD_NUMBER}"
-    def SFDC_USERNAME
-
-    def HUB_ORG = env.HUB_ORG_DH
-    def SFDC_HOST = env.SFDC_HOST_DH
-    def JWT_KEY_CRED_ID = env.JWT_CRED_ID_DH
-    def CONNECTED_APP_CONSUMER_KEY = env.CONNECTED_APP_CONSUMER_KEY_DH
-
-    println 'KEY IS'
-    println JWT_KEY_CRED_ID
-    println HUB_ORG
-    println SFDC_HOST
-    println CONNECTED_APP_CONSUMER_KEY
-
-    def toolbelt = tool 'toolbelt'
-
-    stage('checkout source') {
-        // Checkout the source code
-        checkout scm
+    environment {
+        // You can set these directly if necessary
+        SFDC_USERNAME = ''
+        HUB_ORG = env.HUB_ORG_DH
+        SFDC_HOST = env.SFDC_HOST_DH
+        JWT_KEY_CRED_ID = env.JWT_CRED_ID_DH
+        CONNECTED_APP_CONSUMER_KEY = env.CONNECTED_APP_CONSUMER_KEY_DH
     }
 
-    withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
+    stages {
+        stage('Checkout Source') {
+            steps {
+                checkout scm
+            }
+        }
+
         stage('Deploy Code') {
-            // Choose between Unix or Windows shell execution
-            def rc
-            if (isUnix()) {
-                rc = sh returnStatus: true, script: "${toolbelt} force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwtkeyfile ${jwt_key_file} --setdefaultdevhubusername --instanceurl ${SFDC_HOST}"
-            } else {
-                // On Windows, use `bat` and ensure the paths are correctly quoted
-                rc = bat returnStatus: true, script: "\"${toolbelt}\" force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwtkeyfile C:/Users/Ritika/Downloads/server.key --setdefaultdevhubusername --instanceurl ${SFDC_HOST}"
-            }
+            steps {
+                withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
+                    script {
+                        def rc
+                        // Handle Unix vs Windows
+                        if (isUnix()) {
+                            rc = sh returnStatus: true, script: "${toolbelt} force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwtkeyfile ${jwt_key_file} --setdefaultdevhubusername --instanceurl ${SFDC_HOST}"
+                        } else {
+                            // On Windows, path to key file should be validated
+                            rc = bat returnStatus: true, script: "\"${toolbelt}\" force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwtkeyfile C:/Users/Ritika/Downloads/server.key --setdefaultdevhubusername --instanceurl ${SFDC_HOST}"
+                        }
 
-            if (rc != 0) {
-                error "Hub org authorization failed with exit code ${rc}"
-            }
+                        if (rc != 0) {
+                            error "Hub org authorization failed with exit code ${rc}"
+                        }
 
-            println "Authorization command completed with status ${rc}"
+                        println "Authorization completed with status ${rc}"
 
-            // Pull out the assigned username (handle Windows and Unix)
-            def rmsg
-            if (isUnix()) {
-                rmsg = sh returnStdout: true, script: "${toolbelt} project deploy start -d manifest/. -o ${HUB_ORG}"
-            } else {
-                rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start -d manifest/. -o ${HUB_ORG}"
+                        // Deploy the project
+                        def rmsg
+                        if (isUnix()) {
+                            rmsg = sh returnStdout: true, script: "${toolbelt} project deploy start -d manifest/. -o ${HUB_ORG}"
+                        } else {
+                            rmsg = bat returnStdout: true, script: "\"${toolbelt}\" project deploy start -d manifest/. -o ${HUB_ORG}"
+                        }
+
+                        // Log deployment message
+                        println "Deployment message: ${rmsg}"
+                    }
+                }
             }
-            
-            // Print the result message
-            println "Deployment message: ${rmsg}"
+        }
+
+        stage('Run Apex Tests') {
+            steps {
+                script {
+                    // Run Apex tests after deployment to validate
+                    sh 'sfdx force:apex:test:run --resultformat human --wait 10'
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Deployment was successful!'
+        }
+        failure {
+            echo 'Deployment failed.'
+        }
+        always {
+            // Clean up, notify, etc.
         }
     }
 }
