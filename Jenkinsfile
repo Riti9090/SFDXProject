@@ -1,68 +1,65 @@
-// Define the helper method outside the pipeline block
-def command(script) {
-    echo "Running command: ${script}"
-    if (isUnix()) {
-        return sh(returnStatus: true, script: script)
-    } else {
-        return bat(returnStatus: true, script: script)
-    }
-}
 
-pipeline {
-    agent any
+#!groovy
 
-    
-       def SF_CONSUMER_KEY = env.SF_CONSUMER_KEY
+import groovy.json.JsonSlurperClassic
+
+node {
+
+	   def SF_CONSUMER_KEY = env.SF_CONSUMER_KEY
        def SF_USERNAME = env.SF_USERNAME
        def SERVER_KEY_CREDENTIALS_ID = env.SERVER_KEY_CREDENTIALS_ID
        def TEST_LEVEL = 'RunLocalTests'
        def SF_INSTANCE_URL = env.SF_INSTANCE_URL
-    
 
-    stages {
-        stage('Checkout Source') {
-            steps {
-                checkout scm
-            }
-        }
+    def toolbelt = tool 'toolbelt'
+	
+	// -------------------------------------------------------------------------
+    // Check out code from source control.
+    // -------------------------------------------------------------------------
 
-        stage('Authorize Org') {
-            steps {
-                script {
-                    def rc = command("${toolbelt}/sf org login jwt --instance-url ${SF_INSTANCE_URL} --client-id ${SF_CONSUMER_KEY} --username ${SF_USERNAME} --jwt-key-file ${server_key_file} --set-default-org --alias Dev")
-                    if (rc != 0) {
-                        error 'Salesforce dev hub org authorization failed.'
-                    }
-                }
-            }
-        }
-
-        stage('Deploy and Run Tests') {
-            steps {
-                script {
-                    def rc = command("${toolbelt}/sf project deploy start --wait 10 --manifest/. --targetusername Dev --testlevel ${TEST_LEVEL}")
-                    if (rc != 0) {
-                        error 'Salesforce deploy and test run failed.'
-                    }
-                }
-            }
-        }
-
-        stage('Run Tests In Org') {
-            steps {
-                script {
-                    def rc = command("${toolbelt}/sf apex run test --target-org Dev --wait 10 --result-format tap --code-coverage --test-level ${TEST_LEVEL}")
-                    if (rc != 0) {
-                        error 'Salesforce unit test run in Dev org failed.'
-                    }
-                }
-            }
-        }
+    stage('checkout source') {
+        checkout scm
     }
 
-    post {
-        always {
-            echo "Pipeline completed."
-        }
+
+    // -------------------------------------------------------------------------
+    // Run all the enclosed stages with access to the Salesforce
+    // JWT key credentials.
+    // -------------------------------------------------------------------------
+    
+	withEnv(["HOME=${env.WORKSPACE}"]) {
+        
+        withCredentials([file(credentialsId: SERVER_KEY_CREDENTALS_ID, variable: 'server_key_file')]) {
+		
+		// -------------------------------------------------------------------------
+            // Authorize the Dev /' org with JWT key and give it an alias.
+            // -------------------------------------------------------------------------
+
+            stage('Authorize Dev') {
+                rc = command "${toolbelt}/sf org login jwt --instance-url ${SF_INSTANCE_URL} --client-id ${SF_CONSUMER_KEY} --username ${SF_USERNAME} --jwt-key-file ${server_key_file} --set-default-dev"
+                if (rc != 0) {
+                    error 'Salesforce dev hub org authorization failed.'
+                }
+            }
+			
+	      // -------------------------------------------------------------------------
+            // Push source to test scratch org.
+            // -------------------------------------------------------------------------
+
+            stage('Push To Test Scratch Org') {
+                rc = command "${toolbelt}/sf project deploy start --target-org dev"
+                if (rc != 0) {
+                    error 'Salesforce push to test scratch org failed.'
+                }
+            }
+          }
+    }
+}
+
+def command(script) {
+    if (isUnix()) {
+        return sh(returnStatus: true, script: script);
+    } else {
+        return bat(returnStatus: true, script: script);
     }
 }
