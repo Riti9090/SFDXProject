@@ -34,7 +34,7 @@ node {
             // -------------------------------------------------------------------------
 
             stage('Authorize Dev') {
-                rc = command "${toolbelt}/sf org login jwt --instance-url ${SF_INSTANCE_URL} --client-id ${SF_CONSUMER_KEY} --username ${SF_USERNAME} --jwt-key-file ${server_key_file} --set-default-dev"
+                rc = command "${toolbelt} org login jwt --instance-url ${SF_INSTANCE_URL} --client-id ${SF_CONSUMER_KEY} --username ${SF_USERNAME} --jwt-key-file ${server_key_file} --set-default-dev"
                 if (rc != 0) {
                     error 'Salesforce dev hub org authorization failed.'
                 }
@@ -45,7 +45,7 @@ node {
             // -------------------------------------------------------------------------
 
             stage('Push To Test Scratch Org') {
-                rc = command "${toolbelt}/sf project deploy start --target-org dev"
+                rc = command "${toolbelt} project deploy start --target-org dev"
                 if (rc != 0) {
                     error 'Salesforce push to test scratch org failed.'
                 }
