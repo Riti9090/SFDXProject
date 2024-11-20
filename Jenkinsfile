@@ -52,14 +52,29 @@ node {
                     error 'Salesforce push to test scratch org failed.'
                 }
             }
-	 stage('Approval') {
-            steps {
-                input message: 'Do you approve to proceed with deployment?', 
+	   stage('Approval') {
+                input message: 'Do you approve deployment to the QA Org?',
                       parameters: [
                           string(defaultValue: 'yes', description: 'Approve deployment?', name: 'Approval')
                       ]
             }
+
+	stage('Push to QA Branch') {
+    steps {
+        script {
+            // Checkout the 'qa' branch using bat script
+            bat 'git checkout qa'
+
+            // Add all changes to staging
+            bat 'git add .'
+
+            // Commit the changes
+            bat 'git commit -m "Your commit message" || echo No changes to commit'
+
+            // Push to the remote 'qa' branch
+            bat 'git push origin qa'
         }
+    }
 	
 // -------------------------------------------------------------------------
 // Authorize the QA org with JWT key and give it an alias.
