@@ -8,6 +8,8 @@ node {
        def SERVER_KEY_CREDENTIALS_ID = env.SERVER_KEY_CREDENTIALS_ID
        def TEST_LEVEL = 'RunLocalTests'
        def SF_INSTANCE_URL = env.SF_INSTANCE_URL
+	def SF_CONSUMER_KEY_QA = env.SF_CONSUMER_KEY_QA
+	def SF_USERNAME_QA =env.SF_USERNAME_QA
 
     def toolbelt = tool 'toolbelt'
 	
@@ -50,6 +52,32 @@ node {
                     error 'Salesforce push to test scratch org failed.'
                 }
             }
+	 stage('Approval') {
+            steps {
+                input message: 'Do you approve to proceed with deployment?', 
+                      parameters: [
+                          string(defaultValue: 'yes', description: 'Approve deployment?', name: 'Approval')
+                      ]
+            }
+        }
+	
+// -------------------------------------------------------------------------
+// Authorize the QA org with JWT key and give it an alias.
+// -------------------------------------------------------------------------
+
+            stage('Authorize QA') {
+                rc = command "\"${toolbelt}\"  org login jwt --instance-url ${SF_INSTANCE_URL} --client-id ${SF_CONSUMER_KEY_QA} --username ${SF_USERNAME_QA} --jwt-key-file ${server_key_file} --alias qa"
+                if (rc != 0) {
+                    error 'Salesforce dev hub org authorization failed.'
+                }
+            }
+	  stage('Push To Test QA Org') {
+                rc = command "\"${toolbelt}\" project deploy start --target-org qa"
+                if (rc != 0) {
+                    error 'Salesforce push to test scratch org failed.'
+                }
+            }	
+		
           }
     }
 }
