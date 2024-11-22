@@ -57,7 +57,7 @@ node {
             // Push source to test scratch org.
             // -------------------------------------------------------------------------
 
-            stage('Push To Test Scratch Org') {
+            stage('Push To Dev Org') {
                 rc = command "\"${toolbelt}\" project deploy start --target-org dev"
                 if (rc != 0) {
                     error 'Salesforce push to test scratch org failed.'
@@ -76,33 +76,13 @@ node {
             // Push to the 'qa' branch (simplified)
             // -------------------------------------------------------------------------
             stage('Push to QA Branch') {
-    script {
-        // Ensure all remote branches are fetched
-        bat 'git fetch --all'
-
-        // Check if the qa branch exists, if not create and push it
-        bat '''
-            git branch -r | findstr /C:"origin/qa" >nul
-            if %errorlevel% neq 0 (
-                echo "Remote branch 'origin/qa' does not exist. Creating it locally and pushing..."
-                git checkout -b qa
-                git push origin qa
-            ) else (
-                echo "Switching to existing 'qa' branch..."
-                git checkout qa
-            )
-        '''
-
-        // Stage all changes
-        bat 'git add .'
-
-        // Commit the changes, handling the case where there are no changes
-        bat 'git commit -m "Your commit message" || echo No changes to commit'
-
-        // Push the changes to the remote qa branch
-        bat 'git push origin qa'
-    }
-}
+                script {
+                    bat 'git checkout qa'
+                    bat 'git add .'
+                    bat 'git commit -m "Your commit message" || echo No changes to commit'
+                    bat 'git push origin qa'
+                }
+            }
 
 	// -------------------------------------------------------------------------
             // Authorize the QA org with JWT key and give it an alias.
