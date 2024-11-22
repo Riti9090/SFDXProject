@@ -76,13 +76,24 @@ node {
             // Push to the 'qa' branch (simplified)
             // -------------------------------------------------------------------------
             stage('Push to QA Branch') {
-                script {
-                    bat 'git checkout qa'
-                    bat 'git add .'
-                    bat 'git commit -m "Your commit message" || echo No changes to commit'
-                    bat 'git push origin qa'
-                }
-            }
+    script {
+        // Ensure all remote branches are fetched
+        bat 'git fetch --all'
+        
+        // Check out the qa branch, create it locally if it doesn't exist
+        bat 'git checkout qa || git checkout -b qa origin/qa'
+        
+        // Stage all changes
+        bat 'git add .'
+        
+        // Commit the changes, handling the case where there are no changes
+        bat 'git commit -m "Your commit message" || echo No changes to commit'
+        
+        // Push the changes to the remote qa branch
+        bat 'git push origin qa'
+    }
+}
+
 	// -------------------------------------------------------------------------
             // Authorize the QA org with JWT key and give it an alias.
             // -------------------------------------------------------------------------
