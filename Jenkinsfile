@@ -79,16 +79,26 @@ node {
     script {
         // Ensure all remote branches are fetched
         bat 'git fetch --all'
-        
-        // Check out the qa branch, create it locally if it doesn't exist
-        bat 'git checkout qa || git checkout -b qa origin/qa'
-        
+
+        // Check if the qa branch exists, if not create and push it
+        bat '''
+            git branch -r | findstr /C:"origin/qa" >nul
+            if %errorlevel% neq 0 (
+                echo "Remote branch 'origin/qa' does not exist. Creating it locally and pushing..."
+                git checkout -b qa
+                git push origin qa
+            ) else (
+                echo "Switching to existing 'qa' branch..."
+                git checkout qa
+            )
+        '''
+
         // Stage all changes
         bat 'git add .'
-        
+
         // Commit the changes, handling the case where there are no changes
         bat 'git commit -m "Your commit message" || echo No changes to commit'
-        
+
         // Push the changes to the remote qa branch
         bat 'git push origin qa'
     }
