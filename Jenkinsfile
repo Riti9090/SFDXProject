@@ -3,8 +3,8 @@ import groovy.json.JsonSlurperClassic
 
 node {
 
-	   def SF_CONSUMER_KEY_QA = env.SF_CONSUMER_KEY
-       def SF_USERNAME_QA = env.SF_USERNAME
+	   def SF_CONSUMER_KEY_QA = env.SF_CONSUMER_KEY_QA
+       def SF_USERNAME_QA = env.SF_USERNAME_QA
        def SERVER_KEY_CREDENTIALS_ID = env.SERVER_KEY_CREDENTIALS_ID
        def TEST_LEVEL = 'RunLocalTests'
        def SF_INSTANCE_URL = env.SF_INSTANCE_URL
