@@ -34,7 +34,7 @@ node {
             // -------------------------------------------------------------------------
 
             stage('Authorize QA') {
-                rc = command "\"${toolbelt}\"  org login jwt --instance-url ${SF_INSTANCE_URL} --client-id ${SF_CONSUMER_KEY} --username ${SF_USERNAME} --jwt-key-file ${server_key_file} --alias qa"
+                rc = command "\"${toolbelt}\"  org login jwt --instance-url ${SF_INSTANCE_URL} --client-id ${SF_CONSUMER_KEY_QA} --username ${SF_USERNAME_QA} --jwt-key-file ${server_key_file} --alias qa"
                 if (rc != 0) {
                     error 'Salesforce dev hub org authorization failed.'
                 }
