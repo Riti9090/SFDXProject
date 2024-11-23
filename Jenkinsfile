@@ -40,6 +40,15 @@ node {
                 }
             }
 			
+        // -------------------------------------------------------------------------
+        // Approval Step
+        // -------------------------------------------------------------------------
+            stage('Approval') {
+                input message: 'Do you approve deployment to the Dev Org?',
+                      parameters: [
+                          string(defaultValue: 'yes', description: 'Approve deployment?', name: 'Approval')
+                      ]
+            }
 	      // -------------------------------------------------------------------------
             // Push source to test scratch org.
             // -------------------------------------------------------------------------
