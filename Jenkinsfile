@@ -3,8 +3,8 @@ import groovy.json.JsonSlurperClassic
 
 node {
 
-	   def SF_CONSUMER_KEY = env.SF_CONSUMER_KEY
-       def SF_USERNAME = env.SF_USERNAME
+	   def SF_CONSUMER_KEY_QA = env.SF_CONSUMER_KEY_QA
+       def SF_USERNAME_QA = env.SF_USERNAME_QA
        def SERVER_KEY_CREDENTIALS_ID = env.SERVER_KEY_CREDENTIALS_ID
        def TEST_LEVEL = 'RunLocalTests'
        def SF_INSTANCE_URL = env.SF_INSTANCE_URL
@@ -33,19 +33,28 @@ node {
             // Authorize the Dev /' org with JWT key and give it an alias.
             // -------------------------------------------------------------------------
 
-            stage('Authorize Dev') {
-                rc = command "\"${toolbelt}\"  org login jwt --instance-url ${SF_INSTANCE_URL} --client-id ${SF_CONSUMER_KEY} --username ${SF_USERNAME} --jwt-key-file ${server_key_file} --alias dev"
+            stage('Authorize QA') {
+                rc = command "\"${toolbelt}\"  org login jwt --instance-url ${SF_INSTANCE_URL} --client-id ${SF_CONSUMER_KEY_QA} --username ${SF_USERNAME_QA} --jwt-key-file ${server_key_file} --alias qa"
                 if (rc != 0) {
                     error 'Salesforce dev hub org authorization failed.'
                 }
             }
 			
+        // -------------------------------------------------------------------------
+        // Approval Step
+        // -------------------------------------------------------------------------
+            stage('Approval') {
+                input message: 'Do you approve deployment to the Dev Org?',
+                      parameters: [
+                          string(defaultValue: 'yes', description: 'Approve deployment?', name: 'Approval')
+                      ]
+            }
 	      // -------------------------------------------------------------------------
             // Push source to test scratch org.
             // -------------------------------------------------------------------------
 
             stage('Push To Test Scratch Org') {
-                rc = command "\"${toolbelt}\" project deploy start --target-org dev"
+                rc = command "\"${toolbelt}\" project deploy start --target-org qa"
                 if (rc != 0) {
                     error 'Salesforce push to test scratch org failed.'
                 }
