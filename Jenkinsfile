@@ -3,6 +3,7 @@ import groovy.json.JsonSlurperClassic
 
 node {
 
+
 	   def SF_CONSUMER_KEY_QA = env.SF_CONSUMER_KEY_QA
        def SF_USERNAME_QA = env.SF_USERNAME_QA
        def SERVER_KEY_CREDENTIALS_ID = env.SERVER_KEY_CREDENTIALS_ID
@@ -39,6 +40,17 @@ node {
                     error 'Salesforce dev hub org authorization failed.'
                 }
             }
+
+	 // -------------------------------------------------------------------------
+            // Approval Step
+            // -------------------------------------------------------------------------
+            stage('Approval') {
+                input message: 'Do you approve deployment to the Dev Org?',
+                      parameters: [
+                          string(defaultValue: 'yes', description: 'Approve deployment?', name: 'Approval')
+                      ]
+            }
+
 			
         // -------------------------------------------------------------------------
         // Approval Step
@@ -55,7 +67,7 @@ node {
 
             stage('Push To Test Scratch Org') {
                 rc = command "\"${toolbelt}\" project deploy start --target-org qa"
-                if (rc != 0) {
+             if (rc != 0) {
                     error 'Salesforce push to test scratch org failed.'
                 }
             }
